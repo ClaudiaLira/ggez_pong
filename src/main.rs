@@ -1,5 +1,5 @@
 use ggez::event::{EventHandler, KeyCode};
-use ggez::graphics::{DrawMode, DrawParam};
+use ggez::graphics::{DrawMode, DrawParam, Text, TextFragment};
 use ggez::input::keyboard;
 use ggez::nalgebra::Point2;
 use ggez::{conf, event, graphics, Context, GameResult};
@@ -51,14 +51,17 @@ impl Ball {
         Ok(())
     }
 }
+
 enum Side {
     Left,
     Right,
 }
+
 enum Direction {
     Up,
     Down,
 }
+
 struct Player {
     x: f32,
     y: f32,
@@ -100,6 +103,7 @@ impl Player {
         Ok(())
     }
 }
+
 struct MainState {
     player_1: Player,
     player_2: Player,
@@ -109,6 +113,7 @@ struct MainState {
 
 impl MainState {
     fn new() -> GameResult<MainState> {
+        
         let s = MainState {
             ball: Ball::new(),
             player_1: Player::new(Side::Left),
@@ -155,10 +160,19 @@ impl MainState {
         self.ball.dir_y = rng.gen_range(-1.0, 1.0);
     }
 }
+
 impl EventHandler for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx, graphics::BLACK);
-
+        let mut text = Text::new("Score ");
+        text.add(TextFragment::new(self.score.0.to_string()));
+        text.add(TextFragment::new(" : "));
+        text.add(TextFragment::new(self.score.1.to_string()));
+        graphics::draw(
+            ctx,
+            &text,
+            (Point2::new(50.0, 10.0), graphics::WHITE),
+        )?;
         self.ball.draw(ctx)?;
         self.player_1.draw(ctx)?;
         self.player_2.draw(ctx)?;
@@ -185,6 +199,7 @@ impl EventHandler for MainState {
         Ok(())
     }
 }
+
 fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("pong", "Claudia Lira")
         .window_setup(conf::WindowSetup::default().title("Pong"))
