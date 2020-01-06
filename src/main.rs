@@ -1,6 +1,8 @@
 use ggez::graphics::{DrawMode, DrawParam};
 use ggez::nalgebra::Point2;
 use ggez::{conf, event, graphics, timer, Context, ContextBuilder, GameResult};
+use ggez::event::{EventHandler, KeyCode, KeyMods};
+use ggez::input::keyboard;
 use rand::{thread_rng, Rng};
 use std::{env, path};
 
@@ -9,8 +11,8 @@ const WINDOW_HEIGHT: u32 = 600;
 
 const BALL_SPEED: f32 = 5.0;
 
-const PLAYER_WIDTH: u32 = 30;
-const PLAYER_HEIGHT: u32 = 50;
+const PLAYER_WIDTH: f32 = 30.0;
+const PLAYER_HEIGHT: f32 = 50.0;
 
 struct Ball {
     x: f32,
@@ -34,12 +36,12 @@ impl Ball {
         }
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         self.x += self.dir_x * self.speed;
         self.y += self.dir_y * self.speed;
     }
 
-    pub fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         let point = Point2::new(self.x, self.y);
         let b1 =
             graphics::Mesh::new_circle(ctx, DrawMode::fill(), point, 10.0, 1.0, graphics::WHITE)?;
@@ -51,10 +53,15 @@ enum Side {
     Left,
     Right,
 }
+enum Direction {
+    Up,
+    Down,
+}
 struct Player {
     x: f32,
     y: f32,
     side: Side,
+    speed: f32
 }
 
 impl Player {
@@ -65,19 +72,30 @@ impl Player {
         };
         Player {
             x: x,
-            y: (WINDOW_HEIGHT as f32 - PLAYER_HEIGHT as f32) / 2.0,
+            y: (WINDOW_HEIGHT as f32 - PLAYER_HEIGHT) / 2.0,
             side: side,
+            speed: 10.0
         }
     }
 
-    // pub fn update(&mut self) {
-    //     self.x += self.vel_x;
-    //     self.y += self.vel_y;
-    // }
+    fn move_player(&mut self, dir: Direction){
+        self.y += match dir {
+            Direction::Up => -self.speed,
+            Direction::Down => self.speed
+        };
 
-    pub fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        if self.y < 0.0 {
+            self.y = 0.0;
+        }
+
+        if self.y + PLAYER_HEIGHT > WINDOW_HEIGHT as f32 {
+            self.y = WINDOW_HEIGHT as f32 - PLAYER_HEIGHT;
+        }
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         let point = Point2::new(self.x, self.y);
-        let rect = graphics::Rect::new(self.x, self.y, PLAYER_WIDTH as f32, PLAYER_HEIGHT as f32);
+        let rect = graphics::Rect::new(self.x, self.y, PLAYER_WIDTH, PLAYER_HEIGHT);
         let b1 = graphics::Mesh::new_rectangle(ctx, DrawMode::fill(), rect, graphics::WHITE)?;
         graphics::draw(ctx, &b1, DrawParam::default())?;
         Ok(())
@@ -137,26 +155,32 @@ impl event::EventHandler for MainState {
         graphics::present(ctx);
         Ok(())
     }
+
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         self.ball.update();
         self.check_collision();
+
+        if keyboard::is_key_pressed(ctx, KeyCode::W){
+            self.player_1.move_player(Direction::Up);
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::S){
+            self.player_1.move_player(Direction::Down);
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::Up){
+            self.player_2.move_player(Direction::Up);
+        }
+        if keyboard::is_key_pressed(ctx, KeyCode::Down){
+            self.player_2.move_player(Direction::Down);
+        }
         Ok(())
     }
 }
 fn main() -> GameResult {
-    let mut cb = ggez::ContextBuilder::new("drawing", "ggez")
+    let mut cb = ggez::ContextBuilder::new("pong", "Claudia Lira")
         .window_setup(conf::WindowSetup::default().title("Pong"))
         .window_mode(
             conf::WindowMode::default().dimensions(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32),
         );
-
-    if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources/");
-        cb = cb.add_resource_path(path);
-    } else {
-        println!("Not building from cargo?  Ok.");
-    }
 
     let (ctx, events_loop) = &mut cb.build()?;
 
